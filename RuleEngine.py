@@ -25,10 +25,18 @@ class RoulettePLCalculator:
 
         if self.last_dozen is None:
             self.last_dozen = dozen
-            return {"number": number, "dozen": dozen, "bet": None,
-                    "pl": 0, "total": self.total_pl, "mode": self.mode}
+            return {
+                "number": number,
+                "dozen": dozen,
+                "bet": None,
+                "pl": 0,
+                "total": self.total_pl,
+                "mode": self.mode,
+                "next_bet": self.get_bet(dozen)
+            }
 
         bet = self.get_bet(self.last_dozen)
+        current_mode = self.mode  # capture mode at time of bet
 
         if dozen in bet:
             pl = 2500
@@ -41,8 +49,15 @@ class RoulettePLCalculator:
             self.mode = "Recovery" if self.mode == "Normal" else "Normal"
 
         self.last_dozen = dozen
-        return {"number": number, "dozen": dozen, "bet": bet,
-                "pl": pl, "total": self.total_pl, "mode": self.mode}
+        return {
+            "number": number,
+            "dozen": dozen,
+            "bet": bet,
+            "pl": pl,
+            "total": self.total_pl,
+            "mode": current_mode,          # row shows mode at time of bet
+            "next_bet": self.get_bet(dozen) # prediction for upcoming row
+        }
 
 calc = RoulettePLCalculator()
 calc_history = []
@@ -69,16 +84,17 @@ def build_table_rows():
     if len(calc_history) > 1:
         for i in range(1, len(calc_history)):
             prev, curr = calc_history[i-1], calc_history[i]
-            mode_sign = "N" if curr["mode"] == "Normal" else "R"
+
+            mode_full = curr["mode"]
 
             dozen_display = f"{prev['dozen']} → {curr['dozen']}"
-            bet_display = f"{curr['bet'][0]} & {curr['bet'][1]} ({mode_sign})"
+            bet_display = f"{curr['bet'][0]} & {curr['bet'][1]} ({mode_full})"
 
             if curr["pl"] > 0:
                 if curr['dozen'] == curr['bet'][0]:
-                    bet_display = f"<span class='highlight'>{curr['bet'][0]}</span> & {curr['bet'][1]} ({mode_sign})"
+                    bet_display = f"<span class='highlight'>{curr['bet'][0]}</span> & {curr['bet'][1]} ({mode_full})"
                 elif curr['dozen'] == curr['bet'][1]:
-                    bet_display = f"{curr['bet'][0]} & <span class='highlight'>{curr['bet'][1]}</span> ({mode_sign})"
+                    bet_display = f"{curr['bet'][0]} & <span class='highlight'>{curr['bet'][1]}</span> ({mode_full})"
                 dozen_display = f"{prev['dozen']} → <span class='highlight'>{curr['dozen']}</span>"
 
             rows.append({
@@ -87,7 +103,7 @@ def build_table_rows():
                 "bet": bet_display,
                 "pl": curr['pl'],
                 "total": curr['total'],
-                "mode": curr['mode']
+                "mode": mode_full
             })
     return rows
 

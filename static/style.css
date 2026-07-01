@@ -109,3 +109,24 @@ button {
 .undo-btn:hover {
   background-color: #1976d2;
 }
+
+/* ✅ Summary box next to roulette grid */
+.top-section {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.summary-box {
+  margin-left: 20px;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #f9f9f9;
+  min-width: 180px;
+}
+
+.summary-box p {
+  margin: 5px 0;
+  font-weight: bold;
+}

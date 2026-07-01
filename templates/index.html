@@ -8,21 +8,36 @@
 <h2>Roulette P/L Calculator</h2>
 
 <h3>Select Roulette Number:</h3>
-<div class="roulette-layout">
-  <div class="zero">
-    <form method="post" action="/">
-      <input type="hidden" name="number" value="0">
-      <button type="submit" class="green">0</button>
-    </form>
-  </div>
-  <div class="grid">
-    {% for r in roulette_numbers if r.num != 0 %}
-      <form method="post" action="/" style="margin:0;">
-        <input type="hidden" name="number" value="{{r.num}}">
-        <button type="submit" class="{{r.color}}">{{r.num}}</button>
+<div class="top-section">
+  <div class="roulette-layout">
+    <div class="zero">
+      <form method="post" action="/">
+        <input type="hidden" name="number" value="0">
+        <button type="submit" class="green">0</button>
       </form>
-    {% endfor %}
+    </div>
+    <div class="grid">
+      {% for r in roulette_numbers if r.num != 0 %}
+        <form method="post" action="/" style="margin:0;">
+          <input type="hidden" name="number" value="{{r.num}}">
+          <button type="submit" class="{{r.color}}">{{r.num}}</button>
+        </form>
+      {% endfor %}
+    </div>
   </div>
+
+  <!-- ✅ Summary moved here -->
+  {% if calc_history %}
+    {% set latest = calc_history[-1] %}
+    <div class="summary-box">
+      <p><b>Final P/L:</b> ₹{{ latest.total }}</p>
+      {% if latest.next_bet %}
+        <p><b>Next Bet:</b> {{ latest.next_bet[0] }} & {{ latest.next_bet[1] }} ({{ latest.mode }})</p>
+      {% else %}
+        <p><b>Next Bet:</b> Waiting for first spin...</p>
+      {% endif %}
+    </div>
+  {% endif %}
 </div>
 
 <form method="post" action="/reset" style="display:inline;">
@@ -34,23 +49,23 @@
 
 {% if table_rows %}
 <table>
-  <tr><th>Numbers</th><th>Dozens</th><th>Bet</th><th>P/L</th><th>Total</th></tr>
-  {% for r in table_rows %}
+  <tr><th>Numbers</th><th>Dozens</th><th>Bet (Mode)</th><th>P/L</th><th>Total</th></tr>
+  {% for r in table_rows|reverse %}
   <tr>
     <td>{{r.numbers}}</td>
     <td>{{r.dozens|safe}}</td>
     <td>{{r.bet|safe}}</td>
     <td class="{{'win' if r.pl > 0 else 'loss'}}">
-      {{'✅ +2500' if r.pl > 0 else '❌ -5000'}}
+      {% if r.pl > 0 %}
+        ✅ +₹{{r.pl}}
+      {% else %}
+        ❌ ₹{{r.pl|abs}}
+      {% endif %}
     </td>
-    <td>{{r.total}}</td>
+    <td>₹{{r.total}}</td>
   </tr>
   {% endfor %}
 </table>
-
-<p><b>Final P/L:</b> ₹{{table_rows[-1].total}}</p>
-<p><b>Mode:</b> {{table_rows[-1].mode}}</p>
-<p><b>Next Bet:</b> {{calc_history[-1].bet[0]}} & {{calc_history[-1].bet[1]}}</p>
 {% endif %}
 </body>
 </html>
