@@ -26,15 +26,20 @@
     </div>
   </div>
 
-  <!-- ✅ Summary moved here -->
+  <!-- ✅ Summary box -->
   {% if calc_history %}
     {% set latest = calc_history[-1] %}
     <div class="summary-box">
       <p><b>Final P/L:</b> ₹{{ latest.total }}</p>
       {% if latest.next_bet %}
-        <p><b>Next Bet:</b> {{ latest.next_bet[0] }} & {{ latest.next_bet[1] }} ({{ latest.mode }})</p>
+        <p><b>Next Bet:</b> {{ latest.next_bet[0] }} & {{ latest.next_bet[1] }} ({{ latest.next_mode }})</p>
+        <p class="context-line 
+          {% if latest.pl > 0 %}reason-win{% else %}reason-loss{% endif %}">
+          {{ latest.reason }}
+        </p>
       {% else %}
         <p><b>Next Bet:</b> Waiting for first spin...</p>
+        <p class="context-line">Game not started yet.</p>
       {% endif %}
     </div>
   {% endif %}

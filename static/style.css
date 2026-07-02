@@ -123,10 +123,26 @@ button {
   border: 1px solid #ddd;
   border-radius: 6px;
   background-color: #f9f9f9;
-  min-width: 180px;
+  min-width: 220px;
 }
 
 .summary-box p {
   margin: 5px 0;
   font-weight: bold;
+}
+
+/* Context line styling */
+.context-line {
+  font-size: 0.9em;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+/* Color-coded reasons */
+.reason-win {
+  color: green;
+}
+
+.reason-loss {
+  color: red;
 }
