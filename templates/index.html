@@ -1,76 +1,95 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Roulette P/L Calculator</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<h2>Roulette P/L Calculator</h2>
+  <h2>Roulette P/L Calculator</h2>
+  <h3>Select Roulette Number:</h3>
 
-<h3>Select Roulette Number:</h3>
-<div class="top-section">
-  <div class="roulette-layout">
-    <div class="zero">
-      <form method="post" action="/">
-        <input type="hidden" name="number" value="0">
-        <button type="submit" class="green">0</button>
-      </form>
-    </div>
-    <div class="grid">
-      {% for r in roulette_numbers if r.num != 0 %}
-        <form method="post" action="/" style="margin:0;">
-          <input type="hidden" name="number" value="{{r.num}}">
-          <button type="submit" class="{{r.color}}">{{r.num}}</button>
+  <div class="main-section">
+    <!-- ✅ Left side: grid + buttons + summary -->
+    <section class="left-section">
+      <div class="roulette-layout">
+        <div class="zero">
+          <form method="post" action="/">
+            <input type="hidden" name="number" value="0">
+            <button type="submit" class="green">0</button>
+          </form>
+        </div>
+        <div class="grid">
+          {% for r in roulette_numbers if r.num != 0 %}
+            <form method="post" action="/">
+              <input type="hidden" name="number" value="{{ r.num }}">
+              <button type="submit" class="{{ r.color }}">{{ r.num }}</button>
+            </form>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ✅ Undo/Reset buttons side by side -->
+      <div class="action-buttons">
+        <form method="post" action="/reset">
+          <input type="submit" value="Reset" class="action-btn reset-btn">
         </form>
-      {% endfor %}
-    </div>
+        <form method="post" action="/undo">
+          <input type="submit" value="Undo Last" class="action-btn undo-btn">
+        </form>
+      </div>
+
+      <!-- ✅ Summary box -->
+      {% if calc_history %}
+        {% set latest = calc_history[-1] %}
+        <div class="summary-box">
+          <p><b>Final P/L:</b> ₹{{ latest.total }}</p>
+          {% if latest.next_bet %}
+            <p><b>Next Bet:</b> {{ latest.next_bet[0] }} & {{ latest.next_bet[1] }} ({{ latest.next_mode }})</p>
+            <p class="context-line {{ 'reason-win' if latest.pl > 0 else 'reason-loss' }}">
+              {{ latest.reason }}
+            </p>
+          {% else %}
+            <p><b>Next Bet:</b> Waiting for first spin...</p>
+            <p class="context-line">Game not started yet.</p>
+          {% endif %}
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- ✅ Table expands fully to the right -->
+    {% if table_rows %}
+    <section class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Numbers</th>
+            <th>Dozens</th>
+            <th>Bet (Mode)</th>
+            <th>P/L</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in table_rows|reverse %}
+          <tr>
+            <td>{{ r.numbers }}</td>
+            <td>{{ r.dozens|safe }}</td>
+            <td>{{ r.bet|safe }}</td>
+            <td class="{{ 'win' if r.pl > 0 else 'loss' }}">
+              {% if r.pl > 0 %}
+                ✅ +₹{{ r.pl }}
+              {% else %}
+                ❌ ₹{{ r.pl|abs }}
+              {% endif %}
+            </td>
+            <td>₹{{ r.total }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
   </div>
-
-  <!-- ✅ Summary box -->
-  {% if calc_history %}
-    {% set latest = calc_history[-1] %}
-    <div class="summary-box">
-      <p><b>Final P/L:</b> ₹{{ latest.total }}</p>
-      {% if latest.next_bet %}
-        <p><b>Next Bet:</b> {{ latest.next_bet[0] }} & {{ latest.next_bet[1] }} ({{ latest.next_mode }})</p>
-        <p class="context-line 
-          {% if latest.pl > 0 %}reason-win{% else %}reason-loss{% endif %}">
-          {{ latest.reason }}
-        </p>
-      {% else %}
-        <p><b>Next Bet:</b> Waiting for first spin...</p>
-        <p class="context-line">Game not started yet.</p>
-      {% endif %}
-    </div>
-  {% endif %}
-</div>
-
-<form method="post" action="/reset" style="display:inline;">
-  <input type="submit" value="Reset" class="action-btn reset-btn">
-</form>
-<form method="post" action="/undo" style="display:inline;">
-  <input type="submit" value="Undo Last" class="action-btn undo-btn">
-</form>
-
-{% if table_rows %}
-<table>
-  <tr><th>Numbers</th><th>Dozens</th><th>Bet (Mode)</th><th>P/L</th><th>Total</th></tr>
-  {% for r in table_rows|reverse %}
-  <tr>
-    <td>{{r.numbers}}</td>
-    <td>{{r.dozens|safe}}</td>
-    <td>{{r.bet|safe}}</td>
-    <td class="{{'win' if r.pl > 0 else 'loss'}}">
-      {% if r.pl > 0 %}
-        ✅ +₹{{r.pl}}
-      {% else %}
-        ❌ ₹{{r.pl|abs}}
-      {% endif %}
-    </td>
-    <td>₹{{r.total}}</td>
-  </tr>
-  {% endfor %}
-</table>
-{% endif %}
 </body>
 </html>

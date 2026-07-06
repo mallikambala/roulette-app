@@ -1,88 +1,93 @@
+:root {
+  --btn-size: 45px;
+  --btn-font: 0.95em;
+  --gap: 6px;
+  --primary-red: #d32f2f;
+  --primary-black: #212121;
+  --primary-green: #388e3c;
+  --highlight-bg: yellow;
+}
+
 body {
   font-family: Arial, sans-serif;
   margin: 20px;
 }
 
+/* Table styling */
 table {
   border-collapse: collapse;
   margin-top: 15px;
-  width: 70%;
+  width: 100%;
 }
 
 th, td {
-  padding: 8px 12px;
+  padding: 6px 10px;
   text-align: center;
   border: 1px solid #ddd;
+  white-space: nowrap;
 }
 
 th {
   background-color: #f2f2f2;
 }
 
-.win {
-  color: green;
-  font-weight: bold;
+.win { color: green; font-weight: bold; }
+.loss { color: red; font-weight: bold; }
+
+/* Layout */
+.main-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
 }
 
-.loss {
-  color: red;
-  font-weight: bold;
-}
-
-/* Roulette betting table layout */
 .roulette-layout {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
-.zero {
-  margin-right: 10px;
-}
+.zero { margin-right: 10px; }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: 5px;
+  gap: var(--gap);
 }
 
 /* Number buttons */
 button {
   cursor: pointer;
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
+  width: var(--btn-size);
+  height: var(--btn-size);
+  border-radius: 6px;
   border: none;
   font-weight: bold;
+  font-size: var(--btn-font);
   color: white;
 }
 
-/* Colors */
-.red {
-  background-color: #d32f2f;
-}
+.red { background-color: var(--primary-red); }
+.black { background-color: var(--primary-black); }
+.green { background-color: var(--primary-green); }
 
-.black {
-  background-color: #212121;
-}
-
-.green {
-  background-color: #388e3c;
-}
-
-/* Highlight for winning dozen */
+/* Highlight */
 .highlight {
-  background-color: yellow;
+  background-color: var(--highlight-bg);
   font-weight: bold;
   padding: 2px 4px;
   border-radius: 3px;
 }
 
-/* Action buttons (Reset & Undo) */
+/* Action buttons side by side */
+.action-buttons {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
 .action-btn {
   padding: 8px 16px;
-  margin-top: 15px;
-  margin-right: 10px;
   border: none;
   border-radius: 4px;
   font-weight: bold;
@@ -90,35 +95,15 @@ button {
   transition: background-color 0.3s ease;
 }
 
-/* Reset button style */
-.reset-btn {
-  background-color: #f44336; /* red */
-  color: white;
-}
+.reset-btn { background-color: #f44336; color: white; }
+.reset-btn:hover { background-color: #d32f2f; }
 
-.reset-btn:hover {
-  background-color: #d32f2f;
-}
+.undo-btn { background-color: #2196f3; color: white; }
+.undo-btn:hover { background-color: #1976d2; }
 
-/* Undo button style */
-.undo-btn {
-  background-color: #2196f3; /* blue */
-  color: white;
-}
-
-.undo-btn:hover {
-  background-color: #1976d2;
-}
-
-/* ✅ Summary box next to roulette grid */
-.top-section {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-}
-
+/* Summary box */
 .summary-box {
-  margin-left: 20px;
+  margin-top: 15px;
   padding: 10px 15px;
   border: 1px solid #ddd;
   border-radius: 6px;
@@ -131,18 +116,24 @@ button {
   font-weight: bold;
 }
 
-/* Context line styling */
 .context-line {
   font-size: 0.9em;
   margin-top: 5px;
   font-style: italic;
 }
 
-/* Color-coded reasons */
-.reason-win {
-  color: green;
+.reason-win { color: green; }
+.reason-loss { color: red; }
+
+.table-container {
+  flex: 1;
 }
 
-.reason-loss {
-  color: red;
+/* Responsive */
+@media (max-width: 768px) {
+  .grid { grid-template-columns: repeat(6, 1fr); }
+  button { width: 38px; height: 38px; font-size: 0.85em; }
+  table { width: 100%; }
+  .main-section { flex-direction: column; align-items: center; }
+  .table-container { margin-top: 15px; }
 }
