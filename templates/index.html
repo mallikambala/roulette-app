@@ -41,6 +41,9 @@
         {% set latest = calc_history[-1] %}
         <div class="summary-box">
           <p><b>Final P/L:</b> ₹{{ latest.total }}</p>
+          <p><b>Highest Total:</b> ₹{{ latest.highest_total }}</p>
+          <p><b>Lowest Total:</b> ₹{{ latest.lowest_total }}</p>
+
           {% if latest.next_bet %}
             <p><b>Next Bet:</b> {{ latest.next_bet[0] }} & {{ latest.next_bet[1] }} ({{ latest.next_mode }})</p>
             <p class="context-line {{ 'reason-win' if latest.pl > 0 else 'reason-loss' }}">
@@ -54,6 +57,13 @@
           {% if latest.warning %}
             <p class="warning-msg live-warning">{{ latest.warning }}</p>
           {% endif %}
+
+          <div class="confidence-meter">
+            <div class="confidence-bar">
+              <div class="confidence-fill" style="width: {{ latest.confidence_level }}%;"></div>
+            </div>
+            <p>{{ latest.confidence_text }}</p>
+          </div>
         </div>
       {% endif %}
     </section>
@@ -68,6 +78,7 @@
             <th>Bet (Mode)</th>
             <th>P/L</th>
             <th>Total</th>
+            <th>Recalc</th>
           </tr>
         </thead>
         <tbody>
@@ -90,6 +101,11 @@
               {% endif %}
             </td>
             <td>₹{{ r.total }}</td>
+            <td>
+              <form method="post" action="/recalc/{{ r.sno }}">
+                <button type="submit" class="action-btn recalc-btn">🔄</button>
+              </form>
+            </td>
           </tr>
           {% endfor %}
         </tbody>

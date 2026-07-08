@@ -1,7 +1,7 @@
 :root {
-  --btn-size: 45px;
-  --btn-font: 0.95em;
-  --gap: 6px;
+  --btn-size: 42px;
+  --btn-font: 0.9em;
+  --gap: 4px;
   --primary-red: #d32f2f;
   --primary-black: #212121;
   --primary-green: #388e3c;
@@ -13,22 +13,101 @@ body {
   margin: 20px;
 }
 
+h2, h3 {
+  margin-bottom: 10px;
+}
+
+/* Layout */
+.main-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.roulette-layout {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.zero { margin-right: 8px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--gap);
+}
+/* Number buttons */
+button {
+  cursor: pointer;
+  width: var(--btn-size);
+  height: var(--btn-size);
+  border-radius: 5px;
+  border: none;
+  font-weight: bold;
+  font-size: var(--btn-font);
+  color: white;
+}
+
+.red { background-color: var(--primary-red); }
+.black { background-color: var(--primary-black); }
+.green { background-color: var(--primary-green); }
+
+/* Action buttons side by side */
+.action-buttons {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 5px 9px;
+  border: none;
+  border-radius: 3px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 0.85em;
+  line-height: 1.2;
+}
+
+.reset-btn { background-color: #f44336; color: white; }
+.reset-btn:hover { background-color: #d32f2f; }
+
+.undo-btn { background-color: #2196f3; color: white; }
+.undo-btn:hover { background-color: #1976d2; }
+
+/* Recalc button — compact */
+.recalc-btn {
+  background-color: #ff9800;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.8em;
+  line-height: 1.2;
+  height: 20px;
+}
+.recalc-btn:hover { background-color: #e68900; }
 /* Table styling */
 table {
   border-collapse: collapse;
-  margin-top: 15px;
+  margin-top: 10px;
   width: 100%;
+  font-size: 0.95em;
 }
 
 th, td {
-  padding: 6px 10px;
+  padding: 3px 6px;
   text-align: center;
   border: 1px solid #ddd;
   white-space: nowrap;
+  line-height: 1.3;
 }
 
 th {
   background-color: #f2f2f2;
+  font-weight: bold;
+  font-size: 0.95em;
 }
 
 /* Sticky header */
@@ -46,113 +125,40 @@ tbody tr:nth-child(odd) { background-color: #ffffff; }
 .win { color: green; font-weight: bold; }
 .loss { color: red; font-weight: bold; }
 
-/* Layout */
-.main-section {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-}
-
-.roulette-layout {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 10px;
-}
-
-.zero { margin-right: 10px; }
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: var(--gap);
-}
-
-/* Number buttons */
-button {
-  cursor: pointer;
-  width: var(--btn-size);
-  height: var(--btn-size);
-  border-radius: 6px;
-  border: none;
-  font-weight: bold;
-  font-size: var(--btn-font);
-  color: white;
-}
-
-.red { background-color: var(--primary-red); }
-.black { background-color: var(--primary-black); }
-.green { background-color: var(--primary-green); }
-
-/* Highlight */
-.highlight {
-  background-color: var(--highlight-bg);
-  font-weight: bold;
-  padding: 2px 4px;
-  border-radius: 3px;
-}
-
-/* Embedded serial number styling */
-.sno {
-  font-size: 0.75em;
-  color: #666;
-  margin-right: 4px;
-}
-
-/* Action buttons side by side */
-.action-buttons {
-  margin-top: 12px;
-  display: flex;
-  gap: 10px;
-}
-
-.action-btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.reset-btn { background-color: #f44336; color: white; }
-.reset-btn:hover { background-color: #d32f2f; }
-
-.undo-btn { background-color: #2196f3; color: white; }
-.undo-btn:hover { background-color: #1976d2; }
-
 /* Summary box */
 .summary-box {
-  margin-top: 15px;
-  padding: 10px 15px;
+  margin-top: 10px;
+  padding: 7px 12px;
   border: 1px solid #ddd;
-  border-radius: 6px;
+  border-radius: 5px;
   background-color: #f9f9f9;
   min-width: 220px;
 }
 
 .summary-box p {
-  margin: 5px 0;
+  margin: 3px 0;
   font-weight: bold;
+  font-size: 0.9em;
 }
 
 .context-line {
-  font-size: 0.9em;
-  margin-top: 5px;
+  font-size: 0.85em;
+  margin-top: 3px;
   font-style: italic;
 }
 
 .reason-win { color: green; }
 .reason-loss { color: red; }
-
 /* Warning message */
 .warning-msg {
   color: #d32f2f;
   font-weight: bold;
-  margin-top: 8px;
+  margin-top: 5px;
   background-color: #fff3cd;
-  padding: 6px;
-  border-radius: 4px;
+  padding: 4px;
+  border-radius: 3px;
   border: 1px solid #f5c6cb;
+  font-size: 0.9em;
 }
 
 /* Pulsing animation for live warning */
@@ -163,7 +169,7 @@ button {
 
 @keyframes pulse {
   0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.6; }
+  50% { transform: scale(1.05); opacity: 0.7; }
   100% { transform: scale(1); opacity: 1; }
 }
 
@@ -180,17 +186,46 @@ button {
   100% { background-color: #ffe0e0; }
 }
 
+/* Confidence meter */
+.confidence-meter {
+  margin-top: 6px;
+  font-size: 0.9em;
+  font-weight: bold;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.confidence-bar {
+  flex: 1;
+  height: 10px;
+  background-color: #ddd;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  background-color: #388e3c; /* default green */
+  transition: width 0.4s ease;
+}
+
+/* Optional color states */
+.confidence-low .confidence-fill { background-color: #f44336; }
+.confidence-medium .confidence-fill { background-color: #ff9800; }
+.confidence-high .confidence-fill { background-color: #388e3c; }
 /* Responsive */
 .table-container {
   flex: 1;
-  max-height: 400px;
+  max-height: 350px;
   overflow-y: auto;
 }
 
 @media (max-width: 768px) {
   .grid { grid-template-columns: repeat(6, 1fr); }
-  button { width: 38px; height: 38px; font-size: 0.85em; }
-  table { width: 100%; }
+  button { width: 36px; height: 36px; font-size: 0.85em; }
+  table { width: 100%; font-size: 0.9em; }
   .main-section { flex-direction: column; align-items: center; }
-  .table-container { margin-top: 15px; }
+  .table-container { margin-top: 10px; }
 }

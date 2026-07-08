@@ -1,18 +1,21 @@
 from flask import Flask, request, render_template, redirect, url_for, session
 
 app = Flask(__name__)
-app.secret_key = "super_secret_key"  # required for session storage
+app.secret_key = "super_secret_key"
 
 
 class RoulettePLCalculator:
     def __init__(self, total_pl=0, mode="Normal", last_dozen=None,
-                 win_streak=0, loss_streak=0, warning=None):
+                 win_streak=0, loss_streak=0, warning=None,
+                 highest_total=0, lowest_total=0):
         self.total_pl = total_pl
         self.mode = mode
         self.last_dozen = last_dozen
         self.win_streak = win_streak
         self.loss_streak = loss_streak
         self.warning = warning
+        self.highest_total = highest_total
+        self.lowest_total = lowest_total
 
     def get_dozen(self, number):
         if 0 <= number <= 12: return 1
@@ -26,11 +29,22 @@ class RoulettePLCalculator:
         else:  # Recovery
             return [1, 3] if dozen == 1 else [2, 1] if dozen == 2 else [3, 2]
 
+    def calc_confidence(self, current_pl):
+        if current_pl >= 10000:
+            return {"text": "Low confidence (house edge likely to catch up)", "level": 25}
+        elif current_pl <= -15000:
+            return {"text": "High confidence (likely recovery towards -₹2500)", "level": 85}
+        else:
+            return {"text": "Medium confidence", "level": 50}
+
     def process_number(self, number):
         dozen = self.get_dozen(number)
 
         if self.last_dozen is None:
             self.last_dozen = dozen
+            self.highest_total = self.total_pl
+            self.lowest_total = self.total_pl
+            confidence = self.calc_confidence(self.total_pl)
             return {
                 "number": number,
                 "dozen": dozen,
@@ -41,7 +55,11 @@ class RoulettePLCalculator:
                 "next_bet": self.get_bet(dozen),
                 "next_mode": self.mode,
                 "reason": "First spin, setting up game.",
-                "warning": None
+                "warning": None,
+                "highest_total": self.highest_total,
+                "lowest_total": self.lowest_total,
+                "confidence_text": confidence["text"],
+                "confidence_level": confidence["level"]
             }
 
         bet = self.get_bet(self.last_dozen)
@@ -53,7 +71,6 @@ class RoulettePLCalculator:
             if self.last_dozen == dozen:
                 self.mode = "Normal"
             reason = f"Win hit on dozen {dozen}, staying steady."
-
             self.win_streak += 1
             self.loss_streak = 0
             if self.win_streak >= 5:
@@ -65,7 +82,6 @@ class RoulettePLCalculator:
             self.total_pl += pl
             self.mode = "Recovery" if self.mode == "Normal" else "Normal"
             reason = f"Loss on dozen {dozen}, switching to {self.mode} mode."
-
             self.loss_streak += 1
             self.win_streak = 0
             if self.loss_streak >= 5:
@@ -74,6 +90,10 @@ class RoulettePLCalculator:
                 self.warning = None
 
         self.last_dozen = dozen
+        self.highest_total = max(self.highest_total, self.total_pl)
+        self.lowest_total = min(self.lowest_total, self.total_pl)
+        confidence = self.calc_confidence(self.total_pl)
+
         return {
             "number": number,
             "dozen": dozen,
@@ -84,10 +104,15 @@ class RoulettePLCalculator:
             "next_bet": self.get_bet(dozen),
             "next_mode": self.mode,
             "reason": reason,
-            "warning": self.warning
+            "warning": self.warning,
+            "highest_total": self.highest_total,
+            "lowest_total": self.lowest_total,
+            "confidence_text": confidence["text"],
+            "confidence_level": confidence["level"]
         }
 
 
+# ✅ Roulette numbers definition
 roulette_numbers = [
     {"num": 0, "color": "green"},
     {"num": 1, "color": "red"}, {"num": 2, "color": "black"}, {"num": 3, "color": "red"},
@@ -132,7 +157,8 @@ def build_table_rows(history):
                 "pl": curr['pl'],
                 "total": curr['total'],
                 "mode": mode_full,
-                "warning": curr.get("warning")
+                "warning": curr.get("warning"),
+                "sno": i
             })
     return rows
 
@@ -158,7 +184,6 @@ def index():
                            calc_history=history,
                            roulette_numbers=roulette_numbers)
 
-
 @app.route("/reset", methods=["POST"])
 def reset():
     session.clear()
@@ -173,6 +198,25 @@ def undo():
         for entry in session["history"]:
             calc.process_number(entry["number"])
         session["calc"] = calc.__dict__
+    return redirect(url_for("index"))
+
+
+@app.route("/recalc/<int:start_row>", methods=["POST"])
+def recalc(start_row):
+    if "history" not in session or not session["history"]:
+        return redirect(url_for("index"))
+
+    sliced_history = session["history"][start_row-1:]
+    calc = RoulettePLCalculator()
+    new_history = []
+
+    for entry in sliced_history:
+        result = calc.process_number(entry["number"])
+        new_history.append(result)
+
+    session["calc"] = calc.__dict__
+    session["history"] = new_history
+
     return redirect(url_for("index"))
 
 
