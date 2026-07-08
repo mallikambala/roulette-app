@@ -5,10 +5,14 @@ app.secret_key = "super_secret_key"  # required for session storage
 
 
 class RoulettePLCalculator:
-    def __init__(self, total_pl=0, mode="Normal", last_dozen=None):
+    def __init__(self, total_pl=0, mode="Normal", last_dozen=None,
+                 win_streak=0, loss_streak=0, warning=None):
         self.total_pl = total_pl
         self.mode = mode
         self.last_dozen = last_dozen
+        self.win_streak = win_streak
+        self.loss_streak = loss_streak
+        self.warning = warning
 
     def get_dozen(self, number):
         if 0 <= number <= 12: return 1
@@ -36,7 +40,8 @@ class RoulettePLCalculator:
                 "mode": self.mode,
                 "next_bet": self.get_bet(dozen),
                 "next_mode": self.mode,
-                "reason": "First spin, setting up game."
+                "reason": "First spin, setting up game.",
+                "warning": None
             }
 
         bet = self.get_bet(self.last_dozen)
@@ -48,11 +53,25 @@ class RoulettePLCalculator:
             if self.last_dozen == dozen:
                 self.mode = "Normal"
             reason = f"Win hit on dozen {dozen}, staying steady."
+
+            self.win_streak += 1
+            self.loss_streak = 0
+            if self.win_streak >= 5:
+                self.warning = f"⚠️ Win streak of {self.win_streak}! Consider stopping."
+            else:
+                self.warning = None
         else:
             pl = -5000
             self.total_pl += pl
             self.mode = "Recovery" if self.mode == "Normal" else "Normal"
             reason = f"Loss on dozen {dozen}, switching to {self.mode} mode."
+
+            self.loss_streak += 1
+            self.win_streak = 0
+            if self.loss_streak >= 5:
+                self.warning = f"⚠️ Loss streak of {self.loss_streak}! Consider stopping."
+            else:
+                self.warning = None
 
         self.last_dozen = dozen
         return {
@@ -64,7 +83,8 @@ class RoulettePLCalculator:
             "mode": current_mode,
             "next_bet": self.get_bet(dozen),
             "next_mode": self.mode,
-            "reason": reason
+            "reason": reason,
+            "warning": self.warning
         }
 
 
@@ -92,30 +112,27 @@ def build_table_rows(history):
             prev, curr = history[i - 1], history[i]
             mode_full = curr["mode"]
 
-            # Default displays
             dozen_display = f"{prev['dozen']} → {curr['dozen']}"
             bet_display = f"{curr['bet'][0]} & {curr['bet'][1]} ({mode_full})" if curr["bet"] else "-"
 
-            # ✅ Highlight winning dozen only
             if curr["pl"] > 0 and curr["bet"]:
                 if curr['dozen'] == curr['bet'][0]:
                     bet_display = f"<span class='highlight'>{curr['bet'][0]}</span> & {curr['bet'][1]} ({mode_full})"
                 elif curr['dozen'] == curr['bet'][1]:
                     bet_display = f"{curr['bet'][0]} & <span class='highlight'>{curr['bet'][1]}</span> ({mode_full})"
-
                 dozen_display = f"{prev['dozen']} → <span class='highlight'>{curr['dozen']}</span>"
 
-            # ✅ Highlight same dozen mode (e.g. 1→1, 2→2, 3→3)
             if prev['dozen'] == curr['dozen']:
                 dozen_display = f"<span class='highlight'>{prev['dozen']} → {curr['dozen']}</span>"
 
             rows.append({
-                "numbers": f"{prev['number']} → {curr['number']}",
+                "numbers": f"<span class='sno'>{i}</span> {prev['number']} → {curr['number']}",
                 "dozens": dozen_display,
                 "bet": bet_display,
                 "pl": curr['pl'],
                 "total": curr['total'],
-                "mode": mode_full
+                "mode": mode_full,
+                "warning": curr.get("warning")
             })
     return rows
 

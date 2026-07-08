@@ -10,7 +10,6 @@
   <h3>Select Roulette Number:</h3>
 
   <div class="main-section">
-    <!-- ✅ Left side: grid + buttons + summary -->
     <section class="left-section">
       <div class="roulette-layout">
         <div class="zero">
@@ -29,7 +28,6 @@
         </div>
       </div>
 
-      <!-- ✅ Undo/Reset buttons side by side -->
       <div class="action-buttons">
         <form method="post" action="/reset">
           <input type="submit" value="Reset" class="action-btn reset-btn">
@@ -39,7 +37,6 @@
         </form>
       </div>
 
-      <!-- ✅ Summary box -->
       {% if calc_history %}
         {% set latest = calc_history[-1] %}
         <div class="summary-box">
@@ -53,11 +50,14 @@
             <p><b>Next Bet:</b> Waiting for first spin...</p>
             <p class="context-line">Game not started yet.</p>
           {% endif %}
+
+          {% if latest.warning %}
+            <p class="warning-msg live-warning">{{ latest.warning }}</p>
+          {% endif %}
         </div>
       {% endif %}
     </section>
 
-    <!-- ✅ Table expands fully to the right -->
     {% if table_rows %}
     <section class="table-container">
       <table>
@@ -72,10 +72,16 @@
         </thead>
         <tbody>
           {% for r in table_rows|reverse %}
-          <tr>
-            <td>{{ r.numbers }}</td>
+          <tr class="{% if r.warning %}warning-row{% endif %}">
+            <td>{{ r.numbers|safe }}</td>
             <td>{{ r.dozens|safe }}</td>
-            <td>{{ r.bet|safe }}</td>
+            <td>
+              {% if r.warning %}
+                ⚠️ {{ r.bet|safe }}
+              {% else %}
+                {{ r.bet|safe }}
+              {% endif %}
+            </td>
             <td class="{{ 'win' if r.pl > 0 else 'loss' }}">
               {% if r.pl > 0 %}
                 ✅ +₹{{ r.pl }}
