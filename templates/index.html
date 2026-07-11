@@ -1,117 +1,226 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Roulette P/L Calculator</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <title>Roulette P/L Calculator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
-  <h2>Roulette P/L Calculator</h2>
-  <h3>Select Roulette Number:</h3>
 
-  <div class="main-section">
+<h2>Roulette P/L Calculator</h2>
+
+<h3>Select Roulette Number:</h3>
+
+<div class="main-section">
+
+    <!-- LEFT SIDE -->
     <section class="left-section">
-      <div class="roulette-layout">
-        <div class="zero">
-          <form method="post" action="/">
-            <input type="hidden" name="number" value="0">
-            <button type="submit" class="green">0</button>
-          </form>
-        </div>
-        <div class="grid">
-          {% for r in roulette_numbers if r.num != 0 %}
-            <form method="post" action="/">
-              <input type="hidden" name="number" value="{{ r.num }}">
-              <button type="submit" class="{{ r.color }}">{{ r.num }}</button>
-            </form>
-          {% endfor %}
-        </div>
-      </div>
 
-      <div class="action-buttons">
-        <form method="post" action="/reset">
-          <input type="submit" value="Reset" class="action-btn reset-btn">
-        </form>
-        <form method="post" action="/undo">
-          <input type="submit" value="Undo Last" class="action-btn undo-btn">
-        </form>
-      </div>
+        <div class="roulette-layout">
 
-      {% if calc_history %}
-        {% set latest = calc_history[-1] %}
-        <div class="summary-box">
-          <p><b>Final P/L:</b> ₹{{ latest.total }}</p>
-          <p><b>Highest Total:</b> ₹{{ latest.highest_total }}</p>
-          <p><b>Lowest Total:</b> ₹{{ latest.lowest_total }}</p>
-
-          {% if latest.next_bet %}
-            <p><b>Next Bet:</b> {{ latest.next_bet[0] }} & {{ latest.next_bet[1] }} ({{ latest.next_mode }})</p>
-            <p class="context-line {{ 'reason-win' if latest.pl > 0 else 'reason-loss' }}">
-              {{ latest.reason }}
-            </p>
-          {% else %}
-            <p><b>Next Bet:</b> Waiting for first spin...</p>
-            <p class="context-line">Game not started yet.</p>
-          {% endif %}
-
-          {% if latest.warning %}
-            <p class="warning-msg live-warning">{{ latest.warning }}</p>
-          {% endif %}
-
-          <div class="confidence-meter">
-            <div class="confidence-bar">
-              <div class="confidence-fill" style="width: {{ latest.confidence_level }}%;"></div>
+            <div class="zero">
+                <form method="post" action="/">
+                    <input type="hidden" name="number" value="0">
+                    <button type="submit" class="green">0</button>
+                </form>
             </div>
-            <p>{{ latest.confidence_text }}</p>
-          </div>
+
+            <div class="grid">
+                {% for r in roulette_numbers if r.num != 0 %}
+                <form method="post" action="/">
+                    <input type="hidden" name="number" value="{{ r.num }}">
+                    <button type="submit" class="{{ r.color }}">
+                        {{ r.num }}
+                    </button>
+                </form>
+                {% endfor %}
+            </div>
+
         </div>
-      {% endif %}
+
+        <div class="action-buttons">
+
+            <form method="post" action="/reset">
+                <input type="submit"
+                       value="Reset"
+                       class="action-btn reset-btn">
+            </form>
+
+            <form method="post" action="/undo">
+                <input type="submit"
+                       value="Undo Last"
+                       class="action-btn undo-btn">
+            </form>
+
+        </div>
+
     </section>
 
-    {% if table_rows %}
-    <section class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Numbers</th>
-            <th>Dozens</th>
-            <th>Bet (Mode)</th>
-            <th>P/L</th>
-            <th>Total</th>
-            <th>Recalc</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in table_rows|reverse %}
-          <tr class="{% if r.warning %}warning-row{% endif %}">
-            <td>{{ r.numbers|safe }}</td>
-            <td>{{ r.dozens|safe }}</td>
-            <td>
-              {% if r.warning %}
-                ⚠️ {{ r.bet|safe }}
-              {% else %}
-                {{ r.bet|safe }}
-              {% endif %}
-            </td>
-            <td class="{{ 'win' if r.pl > 0 else 'loss' }}">
-              {% if r.pl > 0 %}
-                ✅ +₹{{ r.pl }}
-              {% else %}
-                ❌ ₹{{ r.pl|abs }}
-              {% endif %}
-            </td>
-            <td>₹{{ r.total }}</td>
-            <td>
-              <form method="post" action="/recalc/{{ r.sno }}">
-                <button type="submit" class="action-btn recalc-btn">🔄</button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <!-- RIGHT SIDE -->
+    <section class="right-section">
+
+        {% if calc_history %}
+
+        {% set latest = calc_history[-1] %}
+
+        <div class="summary-box">
+
+            <p><b>Final P/L:</b> ₹{{ latest.total }}</p>
+
+            <p><b>Highest Total:</b> ₹{{ latest.highest_total }}</p>
+
+            <p><b>Lowest Total:</b> ₹{{ latest.lowest_total }}</p>
+
+            {% if latest.next_bet %}
+
+            <p>
+                <b>Next Bet:</b>
+                {{ latest.next_bet[0] }}
+                &
+                {{ latest.next_bet[1] }}
+                ({{ latest.next_mode }})
+            </p>
+
+            <p class="context-line {{ 'reason-win' if latest.pl > 0 else 'reason-loss' }}">
+                {{ latest.reason }}
+            </p>
+
+            {% else %}
+
+            <p><b>Next Bet:</b> Waiting for first spin...</p>
+
+            <p class="context-line">
+                Game not started yet.
+            </p>
+
+            {% endif %}
+
+            {% if latest.warning %}
+
+            <p class="warning-msg live-warning">
+                {{ latest.warning }}
+            </p>
+
+            {% endif %}
+
+            <div class="confidence-meter">
+
+                <div class="confidence-bar">
+
+                    <div class="confidence-fill"
+                         style="width: {{ latest.confidence_level }}%;">
+                    </div>
+
+                </div>
+
+                <p>{{ latest.confidence_text }}</p>
+
+            </div>
+
+        </div>
+
+        {% endif %}
+
     </section>
-    {% endif %}
-  </div>
+
+</div>
+
+<!-- HISTORY TABLE STARTS BELOW -->
+ {% if table_rows %}
+
+<section class="table-container">
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>Numbers</th>
+                <th>Dozens</th>
+                <th>Bet (Mode)</th>
+                <th>P/L</th>
+                <th>Total</th>
+                <th>Recalc</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            {% for r in table_rows|reverse %}
+
+            <tr class="{% if r.warning %}warning-row{% endif %}">
+
+                <td>
+                    {{ r.numbers|safe }}
+                </td>
+
+                <td>
+                    {{ r.dozens|safe }}
+                </td>
+
+                <td>
+
+                    {% if r.warning %}
+
+                        ⚠️ {{ r.bet|safe }}
+
+                    {% else %}
+
+                        {{ r.bet|safe }}
+
+                    {% endif %}
+
+                </td>
+
+                <td class="{{ 'win' if r.pl > 0 else 'loss' }}">
+
+                    {% if r.pl > 0 %}
+
+                        ✅ +₹{{ r.pl }}
+
+                    {% else %}
+
+                        ❌ ₹{{ r.pl|abs }}
+
+                    {% endif %}
+
+                </td>
+
+                <td>
+
+                    ₹{{ r.total }}
+
+                </td>
+
+                <td>
+
+                    <form method="post"
+                          action="/recalc/{{ r.sno }}">
+
+                        <button type="submit"
+                                class="action-btn recalc-btn">
+
+                            🔄
+
+                        </button>
+
+                    </form>
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endif %}
+
 </body>
 </html>
