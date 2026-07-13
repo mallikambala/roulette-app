@@ -1,13 +1,15 @@
+import os
 from flask import Flask, request, render_template, redirect, url_for, session
 
 app = Flask(__name__)
-app.secret_key = "super_secret_key"
 
+# Secure key using Render Environment Variables.
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_fallback_secure_key_12345!")
 
 class RoulettePLCalculator:
     def __init__(self, total_pl=0, mode="Normal", last_dozen=None,
                  win_streak=0, loss_streak=0, warning=None,
-                 highest_total=0, lowest_total=0):
+                 highest_total=0, lowest_total=0, zero_rule="loss"):
         self.total_pl = total_pl
         self.mode = mode
         self.last_dozen = last_dozen
@@ -16,17 +18,27 @@ class RoulettePLCalculator:
         self.warning = warning
         self.highest_total = highest_total
         self.lowest_total = lowest_total
+        self.zero_rule = zero_rule # New: tracks the active 0 rule
 
     def get_dozen(self, number):
-        if 0 <= number <= 12: return 1
-        elif 13 <= number <= 24: return 2
-        elif 25 <= number <= 36: return 3
+        if number == 0:
+            return 1 if self.zero_rule == "dozen1" else 0
+        elif 1 <= number <= 12: 
+            return 1
+        elif 13 <= number <= 24: 
+            return 2
+        elif 25 <= number <= 36: 
+            return 3
         raise ValueError("Invalid roulette number")
 
     def get_bet(self, dozen):
+        # If last spin was 0 on standard rules, or first spin hasn't happened, no bet can be placed
+        if dozen == 0 or dozen is None:
+            return None
+            
         if self.mode == "Normal":
             return [1, 2] if dozen == 1 else [2, 3] if dozen == 2 else [3, 1]
-        else:  # Recovery
+        else:  # Recovery Mode
             return [1, 3] if dozen == 1 else [2, 1] if dozen == 2 else [3, 2]
 
     def calc_confidence(self, current_pl):
@@ -39,7 +51,8 @@ class RoulettePLCalculator:
 
     def process_number(self, number):
         dozen = self.get_dozen(number)
-
+        
+        # 1. Handle first spin setup safely
         if self.last_dozen is None:
             self.last_dozen = dozen
             self.highest_total = self.total_pl
@@ -54,7 +67,7 @@ class RoulettePLCalculator:
                 "mode": self.mode,
                 "next_bet": self.get_bet(dozen),
                 "next_mode": self.mode,
-                "reason": "First spin, setting up game.",
+                "reason": "First spin, setting up game logic.",
                 "warning": None,
                 "highest_total": self.highest_total,
                 "lowest_total": self.lowest_total,
@@ -65,12 +78,22 @@ class RoulettePLCalculator:
         bet = self.get_bet(self.last_dozen)
         current_mode = self.mode
 
-        if dozen in bet:
+        # 2. Evaluate P/L based on bet and spin
+        if bet is None:
+            # This happens if the last spin was '0' on Standard Rules. We skip betting for one turn.
+            pl = 0
+            self.total_pl += pl
+            reason = f"Number {number} spun. No active bet placed."
+            self.win_streak = 0
+            self.loss_streak = 0
+            self.warning = None
+        elif dozen != 0 and (dozen in bet):
+            # Win
             pl = 2500
             self.total_pl += pl
             if self.last_dozen == dozen:
                 self.mode = "Normal"
-            reason = f"Win hit on dozen {dozen}, staying steady."
+            reason = f"Win hit on dozen {dozen} (Number {number}), staying steady."
             self.win_streak += 1
             self.loss_streak = 0
             if self.win_streak >= 5:
@@ -78,10 +101,12 @@ class RoulettePLCalculator:
             else:
                 self.warning = None
         else:
+            # Loss
             pl = -5000
             self.total_pl += pl
             self.mode = "Recovery" if self.mode == "Normal" else "Normal"
-            reason = f"Loss on dozen {dozen}, switching to {self.mode} mode."
+            reason = f"Loss on {'Green Zero (0)' if dozen == 0 else f'dozen {dozen}'} (Number {number}). Switching to {self.mode} mode."
+                
             self.loss_streak += 1
             self.win_streak = 0
             if self.loss_streak >= 5:
@@ -89,6 +114,7 @@ class RoulettePLCalculator:
             else:
                 self.warning = None
 
+        # 3. Update trackers
         self.last_dozen = dozen
         self.highest_total = max(self.highest_total, self.total_pl)
         self.lowest_total = min(self.lowest_total, self.total_pl)
@@ -111,8 +137,6 @@ class RoulettePLCalculator:
             "confidence_level": confidence["level"]
         }
 
-
-# ✅ Roulette numbers definition
 roulette_numbers = [
     {"num": 0, "color": "green"},
     {"num": 1, "color": "red"}, {"num": 2, "color": "black"}, {"num": 3, "color": "red"},
@@ -129,26 +153,31 @@ roulette_numbers = [
     {"num": 34, "color": "red"}, {"num": 35, "color": "black"}, {"num": 36, "color": "red"},
 ]
 
-
 def build_table_rows(history):
     rows = []
     if len(history) > 1:
         for i in range(1, len(history)):
             prev, curr = history[i - 1], history[i]
             mode_full = curr["mode"]
-
-            dozen_display = f"{prev['dozen']} → {curr['dozen']}"
-            bet_display = f"{curr['bet'][0]} & {curr['bet'][1]} ({mode_full})" if curr["bet"] else "-"
+            
+            prev_dozen = prev['dozen']
+            curr_dozen = curr['dozen']
+            dozen_display = f"{prev_dozen} → {curr_dozen}"
+            
+            if curr["bet"]:
+                bet_display = f"Dozen {curr['bet'][0]} & {curr['bet'][1]} ({mode_full})"
+            else:
+                bet_display = "No Action (Push)"
 
             if curr["pl"] > 0 and curr["bet"]:
                 if curr['dozen'] == curr['bet'][0]:
-                    bet_display = f"<span class='highlight'>{curr['bet'][0]}</span> & {curr['bet'][1]} ({mode_full})"
+                    bet_display = f"<span class='highlight'>Dozen {curr['bet'][0]}</span> & {curr['bet'][1]} ({mode_full})"
                 elif curr['dozen'] == curr['bet'][1]:
-                    bet_display = f"{curr['bet'][0]} & <span class='highlight'>{curr['bet'][1]}</span> ({mode_full})"
-                dozen_display = f"{prev['dozen']} → <span class='highlight'>{curr['dozen']}</span>"
+                    bet_display = f"{curr['bet'][0]} & <span class='highlight'>Dozen {curr['bet'][1]}</span> ({mode_full})"
+                dozen_display = f"{prev_dozen} → <span class='highlight'>{curr_dozen}</span>"
 
             if prev['dozen'] == curr['dozen']:
-                dozen_display = f"<span class='highlight'>{prev['dozen']} → {curr['dozen']}</span>"
+                dozen_display = f"<span class='highlight'>{prev_dozen} → {curr_dozen}</span>"
 
             rows.append({
                 "numbers": f"<span class='sno'>{i}</span> {prev['number']} → {curr['number']}",
@@ -162,11 +191,13 @@ def build_table_rows(history):
             })
     return rows
 
-
 @app.route("/", methods=["GET", "POST"])
 def index():
+    if "zero_rule" not in session:
+        session["zero_rule"] = "loss" # Default rule
+
     if "calc" not in session:
-        session["calc"] = RoulettePLCalculator().__dict__
+        session["calc"] = RoulettePLCalculator(zero_rule=session["zero_rule"]).__dict__
         session["history"] = []
 
     calc = RoulettePLCalculator(**session["calc"])
@@ -182,24 +213,44 @@ def index():
     return render_template("index.html",
                            table_rows=build_table_rows(history),
                            calc_history=history,
-                           roulette_numbers=roulette_numbers)
+                           roulette_numbers=roulette_numbers,
+                           zero_rule=session["zero_rule"])
+
+@app.route("/set_zero_rule", methods=["POST"])
+def set_zero_rule():
+    new_rule = request.form.get("zero_rule", "loss")
+    session["zero_rule"] = new_rule
+
+    # If history exists, instantly recalculate the entire past with the new rule!
+    if "history" in session and session["history"]:
+        calc = RoulettePLCalculator(zero_rule=new_rule)
+        new_history = []
+        for entry in session["history"]:
+            result = calc.process_number(entry["number"])
+            new_history.append(result)
+        session["calc"] = calc.__dict__
+        session["history"] = new_history
+    elif "calc" in session:
+        session["calc"]["zero_rule"] = new_rule
+
+    return redirect(url_for("index"))
 
 @app.route("/reset", methods=["POST"])
 def reset():
+    current_rule = session.get("zero_rule", "loss")
     session.clear()
+    session["zero_rule"] = current_rule # preserve rule through reset
     return redirect(url_for("index"))
-
 
 @app.route("/undo", methods=["POST"])
 def undo():
     if "history" in session and session["history"]:
         session["history"].pop()
-        calc = RoulettePLCalculator()
+        calc = RoulettePLCalculator(zero_rule=session.get("zero_rule", "loss"))
         for entry in session["history"]:
             calc.process_number(entry["number"])
         session["calc"] = calc.__dict__
     return redirect(url_for("index"))
-
 
 @app.route("/recalc/<int:start_row>", methods=["POST"])
 def recalc(start_row):
@@ -207,18 +258,16 @@ def recalc(start_row):
         return redirect(url_for("index"))
 
     sliced_history = session["history"][start_row-1:]
-    calc = RoulettePLCalculator()
+    calc = RoulettePLCalculator(zero_rule=session.get("zero_rule", "loss"))
     new_history = []
-
+    
     for entry in sliced_history:
         result = calc.process_number(entry["number"])
         new_history.append(result)
 
     session["calc"] = calc.__dict__
     session["history"] = new_history
-
     return redirect(url_for("index"))
-
 
 if __name__ == "__main__":
     app.run(debug=True)
