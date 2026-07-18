@@ -41,7 +41,7 @@ class RoulettePLCalculator:
             return [1, 3] if dozen == 1 else [2, 1] if dozen == 2 else [3, 2]
 
     def _generate_predictions(self, next_bet):
-        """Generates 17 random numbers based on the next bet recommendations."""
+        """Generates 17 random numbers based on the next bet recommendations safely."""
         if not next_bet:
             return None
             
@@ -55,10 +55,14 @@ class RoulettePLCalculator:
             3: list(range(25, 37))
         }
         
-        # 7 from first rec, 7 from second rec, 3 from the remaining (total 17)
-        pick1 = random.sample(dozen_ranges[d1], 7)
-        pick2 = random.sample(dozen_ranges[d2], 7)
-        pick3 = random.sample(dozen_ranges[remaining_dozen], 3)
+        # Safe sampling fallback using min() to ensure it never crashes
+        len1 = min(len(dozen_ranges[d1]), 7)
+        len2 = min(len(dozen_ranges[d2]), 7)
+        len3 = min(len(dozen_ranges[remaining_dozen]), 3)
+
+        pick1 = random.sample(dozen_ranges[d1], len1)
+        pick2 = random.sample(dozen_ranges[d2], len2)
+        pick3 = random.sample(dozen_ranges[remaining_dozen], len3)
         
         return sorted(pick1 + pick2 + pick3)
 
@@ -160,7 +164,6 @@ roulette_numbers = [
 def build_table_rows(history):
     rows = []
     miss_streak = 0
-    
     if len(history) > 1:
         for i in range(1, len(history)):
             prev, curr = history[i - 1], history[i]
@@ -185,42 +188,43 @@ def build_table_rows(history):
             if prev['dozen'] == curr['dozen']:
                 dozen_display = f"<span class='highlight'>{prev_dozen} → {curr_dozen}</span>"
 
-            # Number prediction matching logic for the table
             predicted_nums = prev.get("predicted_numbers")
             pred_html = ""
+            is_hit = False
             if predicted_nums:
-                formatted_nums = []
-                is_hit = False
-                for n in predicted_nums:
-                    if n == curr['number']:
-                        formatted_nums.append(f"<span class='pred-hit'>{n}</span>")
-                        is_hit = True
-                    else:
-                        formatted_nums.append(str(n))
-                        
+                if curr['number'] in predicted_nums:
+                    is_hit = True
+                
                 if is_hit:
                     miss_streak = 0
                 else:
                     miss_streak += 1
 
+                formatted_nums = []
+                for n in predicted_nums:
+                    if n == curr['number']:
+                        formatted_nums.append(f"<span class='pred-hit'>{n}</span>")
+                    else:
+                        formatted_nums.append(str(n))
                 pred_html = f"<div class='small-preds'>{', '.join(formatted_nums)}</div>"
+
                 if miss_streak >= 3:
                     pred_html += f"<span class='miss-warning'>⚠️ Miss Streak {miss_streak}!</span>"
             else:
                 pred_html = "<span class='small-preds'>-</span>"
                 miss_streak = 0
                 
-            rows.append({
+            row_data = curr.copy()
+            row_data.update({
+                "sno": i,
                 "numbers": f"<span class='sno'>{i}</span> {prev['number']} → {curr['number']}",
                 "dozens": dozen_display,
                 "bet": bet_display,
-                "predictions": pred_html, 
-                "pl": curr['pl'],
-                "total": curr['total'],
-                "mode": mode_full,
-                "warning": curr.get("warning"),
-                "sno": i
+                "predictions": pred_html,
+                "miss_streak": miss_streak 
             })
+            rows.append(row_data)
+
     return rows
 
 def calculate_prediction_stats(history):
@@ -279,9 +283,11 @@ def index():
         history.append(result)
         session["calc"] = calc.__dict__
         session["history"] = history
+    
+    table_rows_data = build_table_rows(history)
         
     return render_template("index.html",
-                           table_rows=build_table_rows(history),
+                           table_rows=table_rows_data,
                            calc_history=history,
                            roulette_numbers=roulette_numbers,
                            zero_rule=session["zero_rule"],
@@ -291,16 +297,15 @@ def index():
 def set_zero_rule():
     new_rule = request.form.get("zero_rule", "loss")
     session["zero_rule"] = new_rule
+    
     if "history" in session and session["history"]:
-        calc = RoulettePLCalculator(zero_rule=new_rule)
         new_history = []
-        for entry in session["history"]:
-            result = calc.process_number(entry["number"])
-            new_history.append(result)
-        session["calc"] = calc.__dict__
-        session["history"] = new_history
-    elif "calc" in session:
-        session["calc"]["zero_rule"] = new_rule
+        temp_calc = RoulettePLCalculator(zero_rule=new_rule)
+        original_numbers = [h['number'] for h in session['history']]
+        for num in original_numbers:
+            new_history.append(temp_calc.process_number(num))
+        session['history'] = new_history
+        session['calc'] = temp_calc.__dict__
     return redirect(url_for("index"))
 
 @app.route("/reset", methods=["POST"])
@@ -313,28 +318,35 @@ def reset():
 @app.route("/undo", methods=["POST"])
 def undo():
     if "history" in session and session["history"]:
-        session["history"].pop()
-        calc = RoulettePLCalculator(zero_rule=session.get("zero_rule", "loss"))
-        for entry in session["history"]:
-            calc.process_number(entry["number"])
-        session["calc"] = calc.__dict__
+        original_numbers = [h['number'] for h in session['history']]
+        original_numbers.pop()
+        
+        new_history = []
+        temp_calc = RoulettePLCalculator(zero_rule=session.get("zero_rule", "loss"))
+        for num in original_numbers:
+            new_history.append(temp_calc.process_number(num))
+            
+        session['history'] = new_history
+        session['calc'] = temp_calc.__dict__
+
     return redirect(url_for("index"))
 
 @app.route("/recalc/<int:start_row>", methods=["POST"])
 def recalc(start_row):
-    if "history" not in session or not session["history"]:
-        return redirect(url_for("index"))
+    if "history" in session and start_row > 0 and start_row <= len(session['history']):
         
-    sliced_history = session["history"][:start_row-1]
-    calc = RoulettePLCalculator(zero_rule=session.get("zero_rule", "loss"))
-    new_history = []
-    
-    for entry in sliced_history:
-        result = calc.process_number(entry["number"])
-        new_history.append(result)
+        # CRITICAL FIX: Slicing [start_row-1:] correctly restarts from the specified spin 
+        # (It uses the preceding spin to act as the initialization/setup for the new sequence)
+        original_numbers = [h['number'] for h in session['history'][start_row-1:]]
         
-    session["calc"] = calc.__dict__
-    session["history"] = new_history
+        new_history = []
+        temp_calc = RoulettePLCalculator(zero_rule=session.get("zero_rule", "loss"))
+        for num in original_numbers:
+            new_history.append(temp_calc.process_number(num))
+
+        session['history'] = new_history
+        session['calc'] = temp_calc.__dict__
+
     return redirect(url_for("index"))
 
 if __name__ == "__main__":
