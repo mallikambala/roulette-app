@@ -56,7 +56,7 @@ button {
   font-weight: bold;
   font-size: var(--btn-font);
   color: white;
-  transition: transform 0.1s ease;
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
 }
 
 button:focus {
@@ -92,7 +92,7 @@ button:active {
 }
 
 .action-btn:active {
-  transform: scale(0.95); /* Adds a satisfying "click" animation */
+  transform: scale(0.95); /* Satisfaction click animation */
 }
 
 .reset-btn { background-color: #f44336; color: white; }
@@ -169,13 +169,14 @@ button:active {
   100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
 }
 
-/* --- UPDATED PREDICTED CHIPS --- */
+/* PREDICTED CHIPS */
 .prediction-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
   margin-bottom: 12px;
+  justify-content: center; /* Centered layout */
 }
 
 .pred-num {
@@ -197,7 +198,7 @@ button:active {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
-/* --- STATS PILLS --- */
+/* STATS PILLS */
 .pred-stats {
   margin-top: 15px;
   padding-top: 10px;
@@ -322,7 +323,7 @@ button:active {
   100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
 }
 
-/* --- Highlighting individual cells with heavy streaks --- */
+/* Highlighting individual cells with heavy streaks */
 .warning-cell {
   background-color: #ffe0e0 !important;
   font-weight: bold;
@@ -330,12 +331,6 @@ button:active {
 }
 
 @keyframes cellPulse {
-  0% { background-color: #ffe0e0; }
-  50% { background-color: #ffcccc; }
-  100% { background-color: #ffe0e0; }
-}
-
-@keyframes rowPulse {
   0% { background-color: #ffe0e0; }
   50% { background-color: #ffcccc; }
   100% { background-color: #ffe0e0; }
@@ -350,7 +345,7 @@ button:active {
   border-radius: 4px;
 }
 
-/* Table layout styling (Spans the bottom left) */
+/* Table layout styling */
 .table-container {
   width: 100%;
   max-width: 1200px;
@@ -415,55 +410,6 @@ tbody tr:hover { background-color: #f1f5f9; }
 @media (max-width: 768px) {
   .grid { grid-template-columns: repeat(6, 1fr); }
   button { width: 36px; height: 36px; font-size: 0.85em; }
-}
-
-/* Table Rules Toggle Switch Card */
-.settings-card {
-  margin-top: 15px;
-  margin-bottom: 10px;
-  background: #ffffff;
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  box-shadow: 0 1px 4px rgba(0,0,0,.04);
-}
-
-.settings-card h4 {
-  margin: 0 0 8px 0;
-  font-size: 0.9em;
-  color: #555;
-}
-
-.toggle-container {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.radio-label {
-  display: flex;
-  align-items: center;
-  font-size: 0.85em;
-  cursor: pointer;
-  padding: 6px 8px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  border: 1px solid #eee;
-  transition: background-color 0.2s;
-}
-
-.radio-label:hover {
-  background-color: #e9ecef;
-}
-
-.radio-label input[type="radio"] {
-  margin-right: 8px;
-  cursor: pointer;
-}
-
-.radio-label input[type="radio"]:checked + span {
-  font-weight: bold;
-  color: #1976d2;
 }
 
 /* --- INLINE HEADER & TAB RULES --- */
@@ -565,6 +511,7 @@ tbody tr:hover { background-color: #f1f5f9; }
   height: 450px;
   width: 100%;
 }
+
 /* --- NEW: High/Low Single Line Styling --- */
 .high-low-row {
   display: flex;
@@ -578,12 +525,21 @@ tbody tr:hover { background-color: #f1f5f9; }
 
 /* --- NEW: Dozen Recommendation Banner Styling --- */
 .next-bet-title {
-  background-color: #eaf2f8; /* Soft blue background */
-  border-left: 4px solid #3498db; /* Distinctive blue edge */
+  background-color: #eaf2f8; 
+  border-left: 4px solid #3498db; 
   padding: 8px 12px;
   margin-top: 0 !important;
   margin-bottom: 12px !important;
   border-radius: 0 4px 4px 0;
   color: #2c3e50;
   font-size: 0.95em;
+}
+
+/* --- GLOW HIGHLIGHTER FOR THE LAST NUMBER SPUN --- */
+.last-spun-highlight {
+  transform: scale(1.15) !important;
+  box-shadow: 0 0 15px 5px rgba(241, 196, 15, 0.9) !important; /* Clean golden glow */
+  border: 1.5px solid #f1c40f !important;
+  z-index: 10;
+  position: relative;
 }

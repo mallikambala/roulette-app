@@ -68,7 +68,7 @@
     </div>
 </div>
 
-<!-- DATA ISLAND -->
+<!-- DATA ISLAND (Backend passing to frontend safely) -->
 <script id="initial-state" type="application/json">
     {
         "history": {{ initial_history | tojson | safe }}
@@ -158,6 +158,10 @@
 
             renderSummary() {
                 const container = document.getElementById('right-section-container');
+                
+                // Clear any old glowing highlights from the wheel
+                document.querySelectorAll('.last-spun-highlight').forEach(el => el.classList.remove('last-spun-highlight'));
+
                 if (this.history.length === 0) {
                     container.innerHTML = `
                         <div class="summary-box empty-state">
@@ -168,6 +172,13 @@
                 }
 
                 const latest = this.history[this.history.length - 1];
+                
+                // HIGHLIGHT THE LAST CLICKED GRID BUTTON
+                const lastSpunButton = document.querySelector(`.roulette-layout button[data-number="${latest.number}"]`);
+                if (lastSpunButton) {
+                    lastSpunButton.classList.add('last-spun-highlight');
+                }
+
                 const stats = this.calculatePredictionStats();
                 
                 let predBoxHtml = '';
