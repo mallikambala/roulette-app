@@ -56,7 +56,8 @@
     <!-- TAB 2: VISUAL ANALYTICS -->
     <div id="tab-analytics" class="tab-content">
         <div class="analytics-card">
-            <h3>📈 Bankroll Trend & Streak Tracker</h3>
+            <!-- UPDATED HEADER -->
+            <h3>📈 Prediction Hits Trend & Streak Tracker</h3>
             <div id="chart-wrapper" class="chart-wrapper">
                 <canvas id="plChart"></canvas>
             </div>
@@ -159,7 +160,6 @@
             renderSummary() {
                 const container = document.getElementById('right-section-container');
                 
-                // Clear any old glowing highlights from the wheel
                 document.querySelectorAll('.last-spun-highlight').forEach(el => el.classList.remove('last-spun-highlight'));
 
                 if (this.history.length === 0) {
@@ -173,7 +173,6 @@
 
                 const latest = this.history[this.history.length - 1];
                 
-                // HIGHLIGHT THE LAST CLICKED GRID BUTTON
                 const lastSpunButton = document.querySelector(`.roulette-layout button[data-number="${latest.number}"]`);
                 if (lastSpunButton) {
                     lastSpunButton.classList.add('last-spun-highlight');
@@ -328,6 +327,7 @@
                 return { hits, misses, rate, curr_miss_streak: currMiss, max_hit_streak: maxHit, max_miss_streak: maxMiss };
             },
 
+            // --- REBUILT CHART LOGIC FOR PREDICTION HITS ---
             renderChart() {
                 const chartWrapper = document.getElementById('chart-wrapper');
                 const emptyState = document.getElementById('chart-empty-state');
@@ -342,13 +342,47 @@
                 emptyState.style.display = 'none';
 
                 const ctx = document.getElementById('plChart').getContext('2d');
-                const fullHistory = [{sno: 0, total: 0, pl: 0, warning: null}, ...this.history];
                 
-                const labels = fullHistory.map((h, i) => i === 0 ? 'Start' : `Spin ${i}`);
-                const totals = fullHistory.map(h => h.total);
-                const pointBgColors = fullHistory.map(h => h.pl > 0 ? '#2ecc71' : (h.pl < 0 ? '#e74c3c' : '#95a5a6'));
-                const pointRadii = fullHistory.map(h => h.warning ? 10 : 5);
-                const pointStyles = fullHistory.map(h => h.warning ? 'rectRot' : 'circle');
+                const labels = ['Start'];
+                const cumulativeHits = [0];
+                const pointBgColors = ['#95a5a6']; // Grey for start
+                const pointRadii = [5];
+                const pointStyles = ['circle'];
+
+                let runningHits = 0;
+                let tempMissStreak = 0;
+
+                // Loop through history to build the Hit trendline
+                for (let i = 1; i < this.history.length; i++) {
+                    labels.push(`Spin ${i}`);
+                    
+                    const prev = this.history[i - 1];
+                    const curr = this.history[i];
+                    
+                    let isHit = false;
+                    if (prev.predicted_numbers) {
+                        isHit = prev.predicted_numbers.some(n => Number(n) === Number(curr.number));
+                    }
+
+                    if (isHit) {
+                        runningHits++;
+                        tempMissStreak = 0;
+                        pointBgColors.push('#2ecc71'); // Green dot for HIT
+                    } else {
+                        tempMissStreak++;
+                        pointBgColors.push('#e74c3c'); // Red dot for MISS
+                    }
+                    
+                    cumulativeHits.push(runningHits);
+
+                    if (tempMissStreak >= 3) {
+                        pointRadii.push(10);
+                        pointStyles.push('rectRot'); // Diamond for streak warning
+                    } else {
+                        pointRadii.push(5);
+                        pointStyles.push('circle');
+                    }
+                }
 
                 if (this.chartInstance) {
                     this.chartInstance.destroy();
@@ -357,10 +391,10 @@
                 this.chartInstance = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels,
+                        labels: labels,
                         datasets: [{
-                            label: 'Running Total (₹)',
-                            data: totals,
+                            label: 'Total Successful Hits',
+                            data: cumulativeHits,
                             borderColor: '#bdc3c7',
                             borderWidth: 2,
                             pointBackgroundColor: pointBgColors,
@@ -376,8 +410,53 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { title: { display: true, text: 'Total Bankroll (₹)' } } }
+                        plugins: { 
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    afterLabel: function(context) {
+                                        if (context.dataIndex === 0) return ["Start of Session"];
+                                        
+                                        const prev = App.history[context.dataIndex - 1];
+                                        const curr = App.history[context.dataIndex];
+                                        
+                                        let isHit = false;
+                                        if (prev && prev.predicted_numbers) {
+                                            isHit = prev.predicted_numbers.some(n => Number(n) === Number(curr.number));
+                                        }
+                                        
+                                        let tooltipLines = [`Spin Result: ${isHit ? '🎯 HIT' : '❌ MISS'}`];
+                                        
+                                        // Calc the streak for this specific point on the graph
+                                        let tempStreak = 0;
+                                        for (let j = 1; j <= context.dataIndex; j++) {
+                                            let p = App.history[j-1];
+                                            let c = App.history[j];
+                                            if (p.predicted_numbers) {
+                                                if (p.predicted_numbers.some(n => Number(n) === Number(c.number))) {
+                                                    tempStreak = 0;
+                                                } else {
+                                                    tempStreak++;
+                                                }
+                                            }
+                                        }
+                                        
+                                        if (tempStreak >= 3) {
+                                            tooltipLines.push(`⚠️ Miss Streak ${tempStreak}!`);
+                                        }
+                                        return tooltipLines;
+                                    }
+                                }
+                            }
+                        },
+                        scales: { 
+                            y: { 
+                                type: 'linear', 
+                                display: true, 
+                                title: { display: true, text: 'Cumulative Number of Hits' },
+                                ticks: { stepSize: 1 } // Whole numbers only for hits
+                            } 
+                        }
                     }
                 });
             }
