@@ -16,8 +16,8 @@
         
         <!-- NAVIGATION TABS -->
         <div class="tabs-container">
-            <button class="tab-btn active" data-target="tab-calculator" onclick="openTab('tab-calculator')">🧮 Malli's RuleEngine</button>
-            <button class="tab-btn" data-target="tab-analytics" onclick="openTab('tab-analytics')">📈 Visual Analytics</button>
+            <button class="tab-btn active" data-target="tab-calculator" onclick="window.App.openTab('tab-calculator')">🧮 Malli's RuleEngine</button>
+            <button class="tab-btn" data-target="tab-analytics" onclick="window.App.openTab('tab-analytics')">📈 Visual Analytics</button>
         </div>
     </div>
 
@@ -28,328 +28,357 @@
                 <h3>Select Roulette Number:</h3>
                 <div class="roulette-layout">
                     <div class="zero">
-                        <form method="post" action="/">
-                            <input type="hidden" name="number" value="0">
-                            <button type="submit" class="green">0</button>
-                        </form>
+                        <button type="button" class="green" data-number="0">0</button>
                     </div>
                     <div class="grid">
                         {% for r in roulette_numbers if r.num != 0 %}
-                        <form method="post" action="/">
-                            <input type="hidden" name="number" value="{{ r.num }}">
-                            <button type="submit" class="{{ r.color }}">
-                                {{ r.num }}
-                            </button>
-                        </form>
+                            <button type="button" class="{{ r.color }}" data-number="{{ r.num }}">{{ r.num }}</button>
                         {% endfor %}
                     </div>
                 </div>
-                <div class="settings-card">
-                    <h4>⚙️ Table Rules</h4>
-                    <form action="/set_zero_rule" method="post" id="ruleForm">
-                        <div class="toggle-container">
-                            <label class="radio-label">
-                                <input type="radio" name="zero_rule" value="loss" onchange="this.form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));" {% if zero_rule == 'loss' %}checked{% endif %}>
-                                <span>Standard (0 = Loss)</span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="zero_rule" value="dozen1" onchange="this.form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));" {% if zero_rule == 'dozen1' %}checked{% endif %}>
-                                <span>Custom (0 = Dozen 1)</span>
-                            </label>
-                        </div>
-                    </form>
-                </div>
+                
                 <div class="action-buttons">
-                    <form method="post" action="/reset">
-                        <input type="submit" value="Reset All" class="action-btn reset-btn">
-                    </form>
-                    <form method="post" action="/undo">
-                        <input type="submit" value="Undo Last" class="action-btn undo-btn">
-                    </form>
+                    <button type="button" class="action-btn reset-btn" onclick="window.App.reset()">Reset All</button>
+                    <button type="button" class="action-btn undo-btn" onclick="window.App.undo()">Undo Last</button>
                 </div>
             </section>
-            <section class="right-section">
-                {% if calc_history %}
-                {% set latest = calc_history[-1] %}
-                <div class="summary-box">
-                     <p style="font-size: 1.1em; margin-bottom: 8px;"><b>Final P/L:</b> ₹{{ latest.total }}</p>
-                    
-                    <div class="high-low-row">
-                        <span><b>Highest Total:</b> ₹{{ latest.highest_total }}</span>
-                        <span><b>Lowest Total:</b> ₹{{ latest.lowest_total }}</span>
-                    </div>
-                    
-                    {% if latest.next_bet %}
-                    
-                    {% if latest.predicted_numbers %}
-                    <div class="prediction-box {% if pred_stats.curr_miss_streak >= 3 %}prediction-box-danger{% endif %}">
-                        
-                        <p class="next-bet-title">
-                            <b>Next Bet:</b> Dozen {{ latest.next_bet[0] }} & Dozen {{ latest.next_bet[1] }} 
-                            <span class="mode-tag">({{ latest.next_mode }})</span>
-                        </p>
 
-                        <p><b>Suggested Numbers To Play:</b></p>
-                        <div class="prediction-grid">
-                            {% for num in latest.predicted_numbers %}
-                                <span class="pred-num">{{ num }}</span>
-                            {% endfor %}
-                        </div>
-                        
-                        <div class="pred-stats">
-                            <span>🎯 Hits: <b>{{ pred_stats.hits }}</b></span>
-                            <span>❌ Misses: <b>{{ pred_stats.misses }}</b></span>
-                            <span>📊 Win Rate: <b>{{ pred_stats.rate }}%</b></span>
-                        </div>
-                        <div class="pred-stats max-stats">
-                            <span class="max-hit">🔥 Max Hit Streak: <b>{{ pred_stats.max_hit_streak }}</b></span>
-                            <span class="max-miss">🧊 Max Miss Streak: <b>{{ pred_stats.max_miss_streak }}</b></span>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <p class="context-line {% if latest.pl > 0 %}reason-win{% elif latest.pl < 0 %}reason-loss{% else %}reason-neutral{% endif %}">
-                        {{ latest.reason }}
-                    </p>
-                    {% else %}
-                    <p><b>Next Bet:</b> Waiting for a valid spin...</p>
-                    <p class="context-line reason-neutral">
-                        {{ latest.reason }}
-                    </p>
-                    {% endif %}
-
-                    {% if latest.warning %}
-                    <p class="warning-msg live-warning">
-                        {{ latest.warning }}
-                    </p>
-                    {% endif %}
-                </div>
-                {% else %}
-                <div class="summary-box empty-state">
-                    <p><b>Game Status:</b> Waiting to start...</p>
-                    <p class="context-line reason-neutral">Select a number on the left grid to process your first spin!</p>
-                </div>
-                {% endif %}
+            <section class="right-section" id="right-section-container">
+                <!-- Summary Box will be rendered here by JavaScript -->
             </section>
         </div>
-        {% if table_rows %}
-        <section class="table-container">
-            <h3>Spin History & Recalculation Engine</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Spin (S.No)</th>
-                        <th>Dozen Transition</th>
-                        <th>Your Bet (Active Mode)</th>
-                        <th>Predicted Numbers</th>
-                        <th>Spin P/L Change</th>
-                        <th>Running Total</th>
-                        <th>Recalc</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for r in table_rows|reverse %}
-                    <tr class="{% if r.warning %}warning-row{% endif %}">
-                        <td>{{ r.numbers|safe }}</td>
-                        <td>{{ r.dozens|safe }}</td>
-                        <td>
-                            {% if r.warning %}⚠️ {% endif %}{{ r.bet|safe }}
-                        </td>
-                        <td>{{ r.predictions|safe }}</td>
-                        <td class="{% if r.pl > 0 %}win{% elif r.pl < 0 %}loss{% else %}neutral{% endif %}">
-                            {% if r.pl > 0 %}
-                                ✅ +₹{{ r.pl }}
-                            {% elif r.pl < 0 %}
-                                ❌ -₹{{ r.pl|abs }}
-                            {% else %}
-                                ➖ Push (₹0)
-                            {% endif %}
-                        </td>
-                        <td>₹{{ r.total }}</td>
-                        <td>
-                            <form method="post" action="/recalc/{{ r.sno }}">
-                                <button type="submit" class="action-btn recalc-btn" title="Recalculate entire flow from here">
-                                    🔄
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+
+        <section id="table-wrapper">
+            <!-- History Table will be rendered here by JavaScript -->
         </section>
-        {% endif %}
     </div>
 
     <!-- TAB 2: VISUAL ANALYTICS -->
     <div id="tab-analytics" class="tab-content">
         <div class="analytics-card">
             <h3>📈 Bankroll Trend & Streak Tracker</h3>
-            {% if table_rows %}
-                <div class="chart-wrapper">
-                    <canvas id="plChart"></canvas>
-                </div>
-            {% else %}
-                <div class="summary-box empty-state" style="margin-top: 20px;">
-                    <p><b>Not enough data!</b></p>
-                    <p class="context-line reason-neutral">Process at least 1 bet to generate the analytics chart.</p>
-                </div>
-            {% endif %}
+            <div id="chart-wrapper" class="chart-wrapper">
+                <canvas id="plChart"></canvas>
+            </div>
+            <div id="chart-empty-state" class="summary-box empty-state" style="margin-top: 20px; display:none;">
+                <p><b>Not enough data!</b></p>
+                <p class="context-line reason-neutral">Process at least 1 bet to generate the analytics chart.</p>
+            </div>
         </div>
     </div>
-
-    <!-- HIDDEN DATA PAYLOAD FOR CHART.JS -->
-    <script id="chart-data" type="application/json">
-        {{ table_rows | tojson }}
-    </script>
 </div>
 
-<!-- JAVASCRIPT FOR TABS, CHARTS, AND SPA FETCH -->
-<script>
-    let chartInstance = null;
-
-    window.openTab = function(tabId) {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active-tab'));
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        
-        document.getElementById(tabId).classList.add('active-tab');
-        document.querySelector(`.tab-btn[data-target="${tabId}"]`).classList.add('active');
-
-        if (tabId === 'tab-analytics') {
-            renderChart();
-        }
+<!-- DATA ISLAND -->
+<script id="initial-state" type="application/json">
+    {
+        "history": {{ initial_history | tojson | safe }}
     }
+</script>
 
-    function renderChart() {
-        const ctx = document.getElementById('plChart');
-        if (!ctx) return;
+<script>
+    (function() {
+        const App = {
+            history: [],
+            chartInstance: null,
+            isProcessing: false, 
 
-        const rawData = document.getElementById('chart-data').textContent;
-        const history = JSON.parse(rawData || '[]');
-        
-        const fullHistory = [{sno: 0, total: 0, pl: 0, warning: null, miss_streak: 0}, ...history];
-
-        const labels = fullHistory.map(h => h.sno === 0 ? 'Start' : `Spin ${h.sno}`);
-        const totals = fullHistory.map(h => h.total);
-        
-        const pointRadii = fullHistory.map(h => (h.warning || h.miss_streak >= 3) ? 10 : 5);
-        const pointStyles = fullHistory.map(h => (h.warning || h.miss_streak >= 3) ? 'rectRot' : 'circle');
-        const pointBgColors = fullHistory.map(h => h.pl > 0 ? '#2ecc71' : (h.pl < 0 ? '#e74c3c' : '#95a5a6'));
-
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
-
-        chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Running Total (₹)',
-                    data: totals,
-                    borderColor: '#bdc3c7',
-                    borderWidth: 2,
-                    pointBackgroundColor: pointBgColors,
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 1.5,
-                    pointRadius: pointRadii,
-                    pointHoverRadius: 12,
-                    pointStyle: pointStyles,
-                    fill: false,
-                    tension: 0.1
-                }]
+            init(initialState) {
+                this.history = initialState.history || [];
+                this.bindEvents();
+                this.render();
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            afterLabel: function(context) {
-                                const dataPoint = fullHistory[context.dataIndex];
-                                let tooltipLines = [`Spin Result: ₹${dataPoint.pl}`];
-                                if (dataPoint.warning) {
-                                    tooltipLines.push(dataPoint.warning);
-                                }
-                                if (dataPoint.miss_streak >= 3) {
-                                    tooltipLines.push(`⚠️ Prediction Miss Streak ${dataPoint.miss_streak}!`);
-                                }
-                                return tooltipLines;
+
+            bindEvents() {
+                document.querySelectorAll('.roulette-layout button').forEach(btn => {
+                    btn.addEventListener('click', (e) => this.handleSpin(e.currentTarget.dataset.number));
+                });
+            },
+
+            async sendRequest(action, data = {}) {
+                if (this.isProcessing) return; 
+                this.isProcessing = true;
+
+                const formData = new FormData();
+                formData.append('action', action);
+                for (const key in data) {
+                    formData.append(key, data[key]);
+                }
+
+                try {
+                    const response = await fetch('/process_click', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    
+                    const state = await response.json();
+                    this.history = state.history;
+                    this.render();
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    alert('An error occurred. Please refresh the page.');
+                } finally {
+                    this.isProcessing = false;
+                }
+            },
+
+            handleSpin(number) {
+                this.sendRequest('spin', { number });
+            },
+
+            undo() {
+                this.sendRequest('undo');
+            },
+
+            reset() {
+                if (confirm('Are you sure you want to reset the entire session?')) {
+                    this.sendRequest('reset');
+                }
+            },
+
+            openTab(tabId) {
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active-tab'));
+                document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+                
+                document.getElementById(tabId).classList.add('active-tab');
+                document.querySelector(`.tab-btn[data-target="${tabId}"]`).classList.add('active');
+
+                if (tabId === 'tab-analytics') {
+                    this.renderChart();
+                }
+            },
+
+            render() {
+                this.renderSummary();
+                this.renderTable();
+                if (document.querySelector('#tab-analytics.active-tab')) {
+                    this.renderChart();
+                }
+            },
+
+            renderSummary() {
+                const container = document.getElementById('right-section-container');
+                if (this.history.length === 0) {
+                    container.innerHTML = `
+                        <div class="summary-box empty-state">
+                            <p><b>Game Status:</b> Waiting to start...</p>
+                            <p class="context-line reason-neutral">Select a number on the left grid to process your first spin!</p>
+                        </div>`;
+                    return;
+                }
+
+                const latest = this.history[this.history.length - 1];
+                const stats = this.calculatePredictionStats();
+                
+                let predBoxHtml = '';
+                if (latest.predicted_numbers) {
+                    predBoxHtml = `
+                        <div class="prediction-box ${stats.curr_miss_streak >= 3 ? 'prediction-box-danger' : ''}">
+                            <p class="next-bet-title">
+                                <b>Next Bet:</b> Dozen ${latest.next_bet[0]} & Dozen ${latest.next_bet[1]} 
+                                <span class="mode-tag">(${latest.next_mode})</span>
+                            </p>
+                            <p><b>Suggested Numbers To Play:</b></p>
+                            <div class="prediction-grid">
+                                ${latest.predicted_numbers.map(n => `<span class="pred-num">${n}</span>`).join('')}
+                            </div>
+                            <div class="pred-stats">
+                                <span>🎯 Hits: <b>${stats.hits}</b></span>
+                                <span>❌ Misses: <b>${stats.misses}</b></span>
+                                <span>📊 Win Rate: <b>${stats.rate}%</b></span>
+                            </div>
+                            <div class="pred-stats max-stats">
+                                <span class="max-hit">🔥 Max Hit Streak: <b>${stats.max_hit_streak}</b></span>
+                                <span class="max-miss">🧊 Max Miss Streak: <b>${stats.max_miss_streak}</b></span>
+                            </div>
+                        </div>`;
+                }
+
+                container.innerHTML = `
+                    <div class="summary-box">
+                        <p style="font-size: 1.1em; margin-bottom: 8px;"><b>Final P/L:</b> ₹${latest.total}</p>
+                        <div class="high-low-row">
+                            <span><b>Highest Total:</b> ₹${latest.highest_total}</span>
+                            <span><b>Lowest Total:</b> ₹${latest.lowest_total}</span>
+                        </div>
+                        ${predBoxHtml}
+                        ${latest.warning ? `<p class="warning-msg live-warning">${latest.warning}</p>` : ''}
+                    </div>`;
+            },
+
+            renderTable() {
+                const wrapper = document.getElementById('table-wrapper');
+                if (this.history.length < 2) {
+                    wrapper.innerHTML = '';
+                    return;
+                }
+
+                let rowsArray = [];
+                
+                for (let i = 1; i < this.history.length; i++) {
+                    const prev = this.history[i - 1];
+                    const curr = this.history[i];
+                    
+                    let dozenDisplay = `${prev.dozen} → ${curr.dozen}`;
+                    if (curr.pl > 0) dozenDisplay = `${prev.dozen} → <span class='highlight'>${curr.dozen}</span>`;
+                    if (prev.dozen == curr.dozen) dozenDisplay = `<span class='highlight'>${prev.dozen} → ${curr.dozen}</span>`;
+                    
+                    let betDisplay = curr.bet ? `Dozen ${curr.bet[0]} & ${curr.bet[1]} (${curr.mode})` : "No Action (Push)";
+                    if (curr.pl > 0 && curr.bet) {
+                        betDisplay = curr.dozen == curr.bet[0] 
+                            ? `<span class='highlight'>Dozen ${curr.bet[0]}</span> & ${curr.bet[1]} (${curr.mode})`
+                            : `${curr.bet[0]} & <span class='highlight'>Dozen ${curr.bet[1]}</span> (${curr.mode})`;
+                    }
+
+                    let plDisplay = `➖ Push (₹0)`;
+                    if (curr.pl > 0) plDisplay = `✅ +₹${curr.pl}`;
+                    if (curr.pl < 0) plDisplay = `❌ -₹${Math.abs(curr.pl)}`;
+                    
+                    let predHtml = "<span class='small-preds'>-</span>";
+                    
+                    let tempMissStreak = 0;
+                    for (let j = 1; j <= i; j++) {
+                        const tempPrev = this.history[j-1];
+                        const tempCurr = this.history[j];
+                        if (tempPrev.predicted_numbers) {
+                            if (tempPrev.predicted_numbers.some(n => Number(n) === Number(tempCurr.number))) {
+                                tempMissStreak = 0;
+                            } else {
+                                tempMissStreak++;
                             }
                         }
                     }
-                },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { 
-                        type: 'linear', 
-                        display: true, 
-                        title: { display: true, text: 'Total Bankroll (₹)' } 
+
+                    if (prev.predicted_numbers) {
+                        const formattedNums = prev.predicted_numbers.map(n => 
+                            Number(n) === Number(curr.number) ? `<span class='pred-hit'>${n}</span>` : n
+                        ).join(', ');
+                        
+                        predHtml = `<div class='small-preds'>${formattedNums}</div>`;
+                        if (tempMissStreak >= 3) {
+                            predHtml += `<span class='miss-warning'>⚠️ Miss Streak ${tempMissStreak}!</span>`;
+                        }
+                    }
+
+                    let betTdClass = curr.warning ? 'warning-cell' : '';
+                    let predTdClass = tempMissStreak >= 3 ? 'warning-cell' : '';
+
+                    rowsArray.push(`
+                        <tr>
+                            <td><span class='sno'>${i}</span> ${prev.number} → ${curr.number}</td>
+                            <td>${dozenDisplay}</td>
+                            <td class="${betTdClass}">${curr.warning ? '⚠️ ' : ''}${betDisplay}</td>
+                            <td class="${predTdClass}">${predHtml}</td>
+                            <td class="${curr.pl > 0 ? 'win' : (curr.pl < 0 ? 'loss' : 'neutral')}">${plDisplay}</td>
+                            <td>₹${curr.total}</td>
+                            <td>
+                                <form method="post" action="/recalc/${i}">
+                                    <button type="submit" class="action-btn recalc-btn" title="Recalculate flow from here">🔄</button>
+                                </form>
+                            </td>
+                        </tr>
+                    `);
+                }
+
+                wrapper.innerHTML = `
+                    <section class="table-container">
+                        <h3>Spin History & Recalculation Engine</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Spin (S.No)</th><th>Dozen Transition</th><th>Your Bet (Active Mode)</th>
+                                    <th>Predicted Numbers</th><th>Spin P/L Change</th><th>Running Total</th><th>Recalc</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rowsArray.reverse().join('')}</tbody>
+                        </table>
+                    </section>`;
+            },
+
+            calculatePredictionStats() {
+                let hits = 0, misses = 0, currHit = 0, currMiss = 0, maxHit = 0, maxMiss = 0;
+                if (this.history.length > 1) {
+                    for (let i = 1; i < this.history.length; i++) {
+                        const prev = this.history[i - 1];
+                        const curr = this.history[i];
+                        if (prev.predicted_numbers) {
+                            if (prev.predicted_numbers.some(n => Number(n) === Number(curr.number))) {
+                                hits++; currHit++; currMiss = 0;
+                            } else {
+                                misses++; currMiss++; currHit = 0;
+                            }
+                            maxHit = Math.max(maxHit, currHit);
+                            maxMiss = Math.max(maxMiss, currMiss);
+                        }
                     }
                 }
-            }
-        });
-    }
+                const total = hits + misses;
+                const rate = total > 0 ? ((hits / total) * 100).toFixed(1) : 0;
+                return { hits, misses, rate, curr_miss_streak: currMiss, max_hit_streak: maxHit, max_miss_streak: maxMiss };
+            },
 
-    if (document.querySelector('#tab-analytics.active-tab')) {
-        renderChart();
-    }
+            renderChart() {
+                const chartWrapper = document.getElementById('chart-wrapper');
+                const emptyState = document.getElementById('chart-empty-state');
 
-    document.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const form = e.target;
-        const scrollY = window.scrollY;
-        const activeTabId = document.querySelector('.tab-btn.active').dataset.target;
-
-        try {
-            const response = await fetch(form.action, {
-                method: form.method,
-                body: new FormData(form)
-            });
-            
-            if (response.ok) {
-                const html = await response.text();
-                const parser = new DOMParser();
-                const newDoc = parser.parseFromString(html, 'text/html');
-                
-                // *** OPTIMIZATION: More surgical DOM update to prevent flicker ***
-                const newSummaryBox = newDoc.querySelector('.summary-box');
-                const currentSummaryBox = document.querySelector('.summary-box');
-                if (currentSummaryBox && newSummaryBox) {
-                    currentSummaryBox.replaceWith(newSummaryBox);
-                }
-
-                const newTableContainer = newDoc.querySelector('.table-container');
-                const currentTableContainer = document.querySelector('.table-container');
-                if (currentTableContainer && newTableContainer) {
-                    currentTableContainer.replaceWith(newTableContainer);
-                } else if (!currentTableContainer && newTableContainer) {
-                    // If a table is created for the first time
-                    document.querySelector('#tab-calculator').appendChild(newTableContainer);
-                } else if (currentTableContainer && !newTableContainer) {
-                    // If the table is removed (e.g., reset)
-                    currentTableContainer.remove();
-                }
-
-                // Update the hidden JSON data for the chart
-                const newChartData = newDoc.getElementById('chart-data');
-                if (newChartData) {
-                    document.getElementById('chart-data').replaceWith(newChartData);
+                if (this.history.length < 2) {
+                    chartWrapper.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    return;
                 }
                 
-                // Re-render chart if the analytics tab is active
-                if(activeTabId === 'tab-analytics') {
-                    renderChart();
+                chartWrapper.style.display = 'block';
+                emptyState.style.display = 'none';
+
+                const ctx = document.getElementById('plChart').getContext('2d');
+                const fullHistory = [{sno: 0, total: 0, pl: 0, warning: null}, ...this.history];
+                
+                const labels = fullHistory.map((h, i) => i === 0 ? 'Start' : `Spin ${i}`);
+                const totals = fullHistory.map(h => h.total);
+                const pointBgColors = fullHistory.map(h => h.pl > 0 ? '#2ecc71' : (h.pl < 0 ? '#e74c3c' : '#95a5a6'));
+                const pointRadii = fullHistory.map(h => h.warning ? 10 : 5);
+                const pointStyles = fullHistory.map(h => h.warning ? 'rectRot' : 'circle');
+
+                if (this.chartInstance) {
+                    this.chartInstance.destroy();
                 }
 
-                window.scrollTo(0, scrollY);
+                this.chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Running Total (₹)',
+                            data: totals,
+                            borderColor: '#bdc3c7',
+                            borderWidth: 2,
+                            pointBackgroundColor: pointBgColors,
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1.5,
+                            pointRadius: pointRadii,
+                            pointHoverRadius: 12,
+                            pointStyle: pointStyles,
+                            fill: false,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { title: { display: true, text: 'Total Bankroll (₹)' } } }
+                    }
+                });
             }
-        } catch (error) {
-            console.error("Fetch error:", error);
-            form.submit(); // Fallback to normal submission if something goes wrong
-        }
-    });
+        };
+
+        window.App = App;
+        
+        // Safely load initial data
+        const stateText = document.getElementById('initial-state').textContent;
+        const initialState = JSON.parse(stateText || '{}');
+        App.init(initialState);
+    })();
 </script>
 
 </body>

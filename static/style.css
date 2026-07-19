@@ -79,14 +79,20 @@ button:active {
 }
 
 .action-btn {
-  padding: 6px 12px;
+  width: auto !important;  /* CRITICAL FIX: Overrides the 42px roulette wheel width */
+  height: auto !important; /* CRITICAL FIX: Overrides the 42px roulette wheel height */
+  padding: 10px 16px;      /* Adds nice breathing room around the text */
   border: none;
-  border-radius: 3px;
+  border-radius: 5px;
   font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  font-size: 0.85em;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  font-size: 0.9em;
   line-height: 1.2;
+}
+
+.action-btn:active {
+  transform: scale(0.95); /* Adds a satisfying "click" animation */
 }
 
 .reset-btn { background-color: #f44336; color: white; }
@@ -316,11 +322,17 @@ button:active {
   100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
 }
 
-/* Highlighting rows with heavy streaks */
-.warning-row {
+/* --- Highlighting individual cells with heavy streaks --- */
+.warning-cell {
   background-color: #ffe0e0 !important;
   font-weight: bold;
-  animation: rowPulse 1.5s infinite;
+  animation: cellPulse 1.5s infinite;
+}
+
+@keyframes cellPulse {
+  0% { background-color: #ffe0e0; }
+  50% { background-color: #ffcccc; }
+  100% { background-color: #ffe0e0; }
 }
 
 @keyframes rowPulse {
